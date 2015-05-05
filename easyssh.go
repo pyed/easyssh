@@ -6,22 +6,18 @@ package easyssh
 import (
 	"bytes"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"os"
-	"os/user"
-	"path/filepath"
-
 	"golang.org/x/crypto/ssh"
+	"io"
+	"os"
+	"path/filepath"
 )
 
 // Contains main authority information.
 // User field should be a name of user on remote server (ex. john in ssh john@example.com).
 // Server field should be a remote machine address (ex. example.com in ssh john@example.com)
-// Key is a path to private key on your local machine.
+// Key is a string contain your private key
 // Port is SSH server port on remote machine.
-// Note: easyssh looking for private key in user's home directory (ex. /home/john + Key).
-// Then ensure your Key begins from '/' (ex. /.ssh/id_rsa)
+// Note: easyssh will hold your private key, so this is dangerous
 type MakeConfig struct {
 	User   string
 	Server string
@@ -30,20 +26,11 @@ type MakeConfig struct {
 }
 
 // returns ssh.Signer from user you running app home path + cutted key path.
-// (ex. pubkey,err := getKeyFile("/.ssh/id_rsa") )
-func getKeyFile(keypath string) (ssh.Signer, error) {
-	usr, err := user.Current()
-	if err != nil {
-		return nil, err
-	}
+// (ex. pubkey,err := parseKey("PRIVATE_KEY_HERE_AS_A_STRING") )
+func parseKey(privateKey string) (ssh.Signer, error) {
+	keyInBytes := []byte(privateKey)
 
-	file := usr.HomeDir + keypath
-	buf, err := ioutil.ReadFile(file)
-	if err != nil {
-		return nil, err
-	}
-
-	pubkey, err := ssh.ParsePrivateKey(buf)
+	pubkey, err := ssh.ParsePrivateKey(keyInBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +40,7 @@ func getKeyFile(keypath string) (ssh.Signer, error) {
 
 // connects to remote server using MakeConfig struct and returns *ssh.Session
 func (ssh_conf *MakeConfig) connect() (*ssh.Session, error) {
-	pubkey, err := getKeyFile(ssh_conf.Key)
+	pubkey, err := parseKey(ssh_conf.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +63,7 @@ func (ssh_conf *MakeConfig) connect() (*ssh.Session, error) {
 	return session, nil
 }
 
-// Runs command on remote machine and returns STDOUT 
+// Runs command on remote machine and returns STDOUT
 func (ssh_conf *MakeConfig) Run(command string) (string, error) {
 	session, err := ssh_conf.connect()
 
