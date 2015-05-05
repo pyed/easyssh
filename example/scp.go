@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"gopkg.in/hypersleep/easyssh.v0"
+	"github.com/pyed/easyssh"
 )
 
 const (
